@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plano de Treino Interativo: Recomposição Corporal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Chosen Palette: Calm Neutrals (Background: #f5f5f4, Text: #334155, Accent: #14b8a6) -->
+  <!-- Application Structure Plan: A tab-based dashboard design was chosen to provide a clear, task-oriented user experience. The main navigation allows users to instantly select a specific day's workout, preventing information overload from a long scroll. This structure separates the daily "to-do" (the workout) from the foundational knowledge (principles, progression) which are accessible in dedicated summary cards. This approach is user-friendly because it mirrors how a person would use the plan: check what to do today, and occasionally review the underlying strategy. -->
+  <!-- Visualization & Content Choices: 1. Weekly Schedule: Presented as interactive tabs (HTML/JS) instead of a static table. Goal: Organize/Navigate. Interaction: Click to display daily workout. Justification: Fast, intuitive access to daily tasks. 2. Volume Distribution: Doughnut Chart (Chart.js). Goal: Inform/Compare. Interaction: Hover tooltips for details. Justification: Provides a quick visual summary of the training week's focus. 3. Daily Workouts: Styled tables (HTML/Tailwind). Goal: Inform. Interaction: None needed beyond clarity. Justification: Best format for structured exercise data. 4. Progression Method: Presented as a simple text block for clarity. Goal: Explain. Justification: A visual diagram might overcomplicate a simple principle for this context. -->
+  <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f4f4f5;
+    }
+
+    .tab-active {
+      background-color: #14b8a6;
+      color: white;
+      border-left-width: 4px;
+      border-color: #0f766e;
+    }
+
+    .tab-inactive {
+      background-color: #ffffff;
+      color: #374151;
+      transition: all 0.2s ease-in-out;
+    }
+
+    .tab-inactive:hover {
+      background-color: #f3f4f6;
+      border-left-color: #9ca3af;
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      height: 300px;
+      max-height: 400px;
+    }
+
+    @media (min-width: 768px) {
+      .chart-container {
+        height: 350px;
+      }
+    }
+  </style>
+</head>
+
+<body class="text-slate-700">
+
+  <div class="container mx-auto p-4 md:p-8">
+
+    <header class="text-center mb-8">
+      <h1 class="text-3xl md:text-4xl font-bold text-slate-800">Plano de Treino para Recomposição Corporal</h1>
+      <p class="mt-2 text-lg text-slate-600">Seu guia interativo de 8 semanas</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+      <aside class="lg:col-span-3">
+        <div class="sticky top-8">
+          <h2 class="text-xl font-bold mb-4 text-slate-800">Navegação Semanal</h2>
+          <nav id="workout-nav"
+            class="flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible -mx-4 px-4 pb-4 lg:pb-0 lg:mx-0 lg:px-0">
+          </nav>
+
+          <div class="mt-8 bg-white p-4 rounded-lg shadow-md">
+            <h3 class="font-bold text-lg mb-2 text-slate-800">Volume Semanal por Músculo</h3>
+            <p class="text-sm text-slate-500 mb-4">Distribuição do total de séries por grupo muscular.</p>
+            <div class="chart-container">
+              <canvas id="volumeChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main id="content-area" class="lg:col-span-9">
+      </main>
+
+    </div>
+
+    <footer class="mt-12 pt-8 border-t border-slate-200">
+      <h2 class="text-2xl font-bold text-center mb-6 text-slate-800">Princípios Fundamentais & Observações</h2>
+      <div id="principles-area" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    const workoutData = {
+      segunda: {
+        title: "Superiores - Foco em Força",
+        day: "Segunda-feira",
+        icon: "💪",
+        intro: "Hoje o foco é construir força nos principais levantamentos de superiores. Priorize a carga e a execução perfeita, com descansos mais longos para garantir a recuperação entre as séries.",
+        exercises: [
+          { name: "Supino Reto com Barra", sets: "4", reps: "4 - 6", rest: "2 - 3 min" },
+          { name: "Remada Curvada com Barra", sets: "4", reps: "4 - 6", rest: "2 - 3 min" },
+          { name: "Desenvolvimento Militar com Halteres", sets: "3", reps: "6 - 8", rest: "2 min" },
+          { name: "Barra Fixa (pegada pronada)¹", sets: "3", reps: "Até a falha", rest: "2 min" },
+          { name: "Supino Inclinado com Halteres", sets: "3", reps: "8 - 10", rest: "90 seg" },
+          { name: "Rosca Direta com Barra", sets: "3", reps: "8 - 10", rest: "60 seg" },
+          { name: "Tríceps Testa com Barra W", sets: "3", reps: "8 - 10", rest: "60 seg" }
+        ],
+        notes: "¹Se não conseguir fazer barras, substitua por Puxada na Polia Alta (Pulldown) com a mesma configuração de séries e repetições de 6-8."
+      },
+      terca: {
+        title: "Inferiores - Foco em Hipertrofia",
+        day: "Terça-feira",
+        icon: "📈",
+        intro: "O objetivo é o volume e o estímulo metabólico para hipertrofia das pernas. As cargas são moderadas e os descansos mais curtos. Prepare-se para sentir a queimação!",
+        exercises: [
+          { name: "Agachamento Livre com Barra", sets: "4", reps: "8 - 12", rest: "90 seg" },
+          { name: "Levantamento Terra Romeno com Halteres", sets: "3", reps: "10 - 12", rest: "90 seg" },
+          { name: "Leg Press 45°", sets: "3", reps: "10 - 15", rest: "90 seg" },
+          { name: "Cadeira Extensora²", sets: "3", reps: "12 - 15", rest: "60 seg" },
+          { name: "Mesa Flexora", sets: "3", reps: "12 - 15", rest: "60 seg" },
+          { name: "Panturrilha em Pé (no Smith ou máquina)", sets: "4", reps: "15 - 20", rest: "45 seg" },
+          { name: "Abdominal na Polia Alta (Crunch com cabo)", sets: "3", reps: "10 - 15", rest: "60 seg" }
+        ],
+        notes: "²Na última série de Cadeira Extensora, execute um <strong>drop-set</strong>: faça até a falha, reduza o peso em 20-30% e imediatamente faça mais repetições até a falha novamente."
+      },
+      quarta: {
+        title: "Descanso Ativo & Cardio",
+        day: "Quarta-feira",
+        icon: "🚶‍♂️",
+        intro: "Este é um dia crucial para a recuperação. O objetivo não é treinar, mas sim auxiliar o corpo a se recuperar dos treinos pesados, melhorando o fluxo sanguíneo e reduzindo a dor muscular.",
+        content: `
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h4 class="font-bold text-lg mb-2 text-teal-600">Cardio de Baixa Intensidade (LISS)</h4>
+                        <p class="text-slate-600 mb-2"><strong>Duração:</strong> 30 a 45 minutos.</p>
+                        <p class="text-slate-600"><strong>Atividade:</strong> Caminhada rápida com inclinação na esteira ou bicicleta em ritmo constante. A intensidade deve ser leve, permitindo que você mantenha uma conversa confortavelmente (Zona 2 de frequência cardíaca).</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md mt-6">
+                        <h4 class="font-bold text-lg mb-2 text-teal-600">Mobilidade e Alongamento</h4>
+                        <p class="text-slate-600 mb-2"><strong>Duração:</strong> 15 a 20 minutos.</p>
+                        <p class="text-slate-600">Foque em alongamentos leves para os músculos trabalhados na segunda e terça-feira (peito, costas, ombros, quadríceps, posteriores). Inclua também exercícios de mobilidade articular para quadris e ombros.</p>
+                    </div>
+                `
+      },
+      quinta: {
+        title: "Superiores - Foco em Hipertrofia",
+        day: "Quinta-feira",
+        icon: "�",
+        intro: "Similar à terça-feira, hoje focamos em volume e conexão mente-músculo para a parte superior do corpo. Use cargas que você controle bem, focando na contração muscular a cada repetição.",
+        exercises: [
+          { name: "Supino Inclinado com Halteres", sets: "4", reps: "8 - 12", rest: "90 seg" },
+          { name: "Puxada Frontal (pegada aberta)", sets: "4", reps: "8 - 12", rest: "90 seg" },
+          { name: "Remada Serrote com Halter", sets: "3", reps: "8 - 12 (por lado)", rest: "90 seg" },
+          { name: "Elevação Lateral com Halteres", sets: "4", reps: "12 - 15", rest: "60 seg" },
+          { name: "Crucifixo na Máquina (Peck Deck)", sets: "3", reps: "10 - 15", rest: "60 seg" },
+          { name: "Rosca Inclinada com Halteres", sets: "3", reps: "10 - 12", rest: "60 seg" },
+          { name: "Tríceps na Polia com Corda³", sets: "3", reps: "10 - 15", rest: "60 seg" }
+        ],
+        notes: "³Na última série de Tríceps na Polia, utilize a técnica <strong>rest-pause</strong>: faça até a falha, descanse por 15 segundos e faça mais repetições até a falha. Repita mais uma vez."
+      },
+      sexta: {
+        title: "Inferiores - Foco em Força",
+        day: "Sexta-feira",
+        icon: "💪",
+        intro: "Finalizamos a semana com um treino de força para pernas. É a sua chance de progredir nos exercícios base. Mantenha a técnica impecável, especialmente no Levantamento Terra.",
+        exercises: [
+          { name: "Agachamento Livre com Barra", sets: "4", reps: "4 - 6", rest: "2 - 3 min" },
+          { name: "Levantamento Terra Convencional⁴", sets: "3", reps: "3 - 5", rest: "3 - 4 min" },
+          { name: "Afundo Búlgaro com Halteres", sets: "3", reps: "6 - 8 (por perna)", rest: "2 min" },
+          { name: "Flexora Nórdica (ou Mesa Flexora com carga)", sets: "3", reps: "6 - 8", rest: "90 seg" },
+          { name: "Panturrilha Sentado com Carga", sets: "4", reps: "8 - 10", rest: "60 seg" },
+          { name: "Prancha Abdominal", sets: "3", reps: "Até a falha", rest: "60 seg" }
+        ],
+        notes: "⁴O Levantamento Terra é extremamente demandante. Priorize a técnica perfeita sobre a carga. O descanso longo é essencial."
+      }
+    };
+
+    const principlesData = [
+      { icon: '🎯', title: 'Progressão de Carga', content: 'Use a Progressão Dupla: trabalhe em uma faixa de repetições (ex: 4-6). Quando atingir o teto da faixa em todas as séries, aumente a carga no próximo treino. Este é o principal motor do seu progresso.' },
+      { icon: '🍎', title: 'Nutrição Estratégica', content: 'A recomposição corporal depende da dieta. Consuma de 1.8 a 2.2g de proteína por kg corporal e opere em um leve déficit calórico ou manutenção para ganhar músculos e perder gordura simultaneamente.' },
+      { icon: '😴', title: 'Sono de Qualidade', content: 'Mire em 7 a 9 horas de sono por noite. A recuperação, o reparo muscular e a otimização hormonal acontecem enquanto você dorme. Não negligencie seu descanso.' },
+      { icon: '🔥', title: 'Aquecimento Essencial', content: 'Sempre faça de 5 a 10 minutos de cardio leve e séries de aquecimento com carga progressiva no primeiro exercício para preparar o corpo e prevenir lesões.' },
+      { icon: '🏃‍♂️', title: 'Cardio Inteligente', content: 'Faça 2-3 sessões de cardio por semana. HIIT pós-treino é ótimo para queima de gordura em menos tempo, enquanto o cardio leve no dia de descanso ajuda na recuperação.' },
+      { icon: '🧘', title: 'Flexibilidade e Deload', content: 'Alongue após os treinos e, após 8 semanas, faça uma semana de "Deload" (volume e intensidade reduzidos em 50%) para dissipar a fadiga e garantir progresso a longo prazo.' }
+    ];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const navContainer = document.getElementById('workout-nav');
+      const contentArea = document.getElementById('content-area');
+      const principlesArea = document.getElementById('principles-area');
+
+      function renderWorkout(dayKey) {
+        const dayData = workoutData[dayKey];
+
+        let contentHTML = `
+                    <div class="bg-white p-6 md:p-8 rounded-lg shadow-md">
+                        <div class="flex items-center mb-4">
+                            <span class="text-4xl mr-4">${dayData.icon}</span>
+                            <div>
+                                <h2 class="text-2xl md:text-3xl font-bold text-slate-800">${dayData.day}</h2>
+                                <p class="text-md text-teal-600 font-semibold">${dayData.title}</p>
+                            </div>
+                        </div>
+                        <p class="text-slate-600 mb-6">${dayData.intro}</p>
+                `;
+
+        if (dayData.exercises) {
+          contentHTML += `
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-2 md:p-4 font-semibold text-slate-600">Exercício</th>
+                                        <th class="p-2 md:p-4 font-semibold text-slate-600 text-center">Séries</th>
+                                        <th class="p-2 md:p-4 font-semibold text-slate-600 text-center">Repetições</th>
+                                        <th class="p-2 md:p-4 font-semibold text-slate-600 text-center">Descanso</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+          dayData.exercises.forEach(ex => {
+            contentHTML += `
+                            <tr class="border-b border-slate-100">
+                                <td class="p-2 md:p-4 font-medium">${ex.name}</td>
+                                <td class="p-2 md:p-4 text-center">${ex.sets}</td>
+                                <td class="p-2 md:p-4 text-center">${ex.reps}</td>
+                                <td class="p-2 md:p-4 text-center">${ex.rest}</td>
+                            </tr>
+                        `;
+          });
+          contentHTML += `
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="mt-6 text-sm text-slate-500 italic">${dayData.notes}</p>
+                    `;
+        } else {
+          contentHTML += dayData.content;
+        }
+
+        contentHTML += `</div>`;
+        contentArea.innerHTML = contentHTML;
+
+        document.querySelectorAll('.nav-link').forEach(link => {
+          link.classList.remove('tab-active');
+          link.classList.add('tab-inactive');
+        });
+        document.querySelector(`.nav-link[data-day="${dayKey}"]`).classList.add('tab-active');
+        document.querySelector(`.nav-link[data-day="${dayKey}"]`).classList.remove('tab-inactive');
+      }
+
+      Object.keys(workoutData).forEach(key => {
+        const day = workoutData[key];
+        const link = document.createElement('a');
+        link.href = '#';
+        link.className = 'nav-link flex-shrink-0 lg:flex-shrink-1 text-left p-4 rounded-lg font-semibold border-l-4 my-1 lg:my-0 lg:mr-0 mr-2';
+        link.dataset.day = key;
+        link.innerHTML = `<span class="text-2xl inline-block align-middle mr-3">${day.icon}</span><span class="inline-block align-middle">${day.day}</span>`;
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          renderWorkout(key);
+        });
+        navContainer.appendChild(link);
+      });
+
+      principlesData.forEach(p => {
+        principlesArea.innerHTML += `
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h4 class="font-bold text-lg mb-2"><span class="mr-2">${p.icon}</span>${p.title}</h4>
+                        <p class="text-slate-600 text-sm">${p.content}</p>
+                    </div>
+                `;
+      });
+
+      const today = new Date().getDay();
+      const dayMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+      let initialDay = dayMap[today];
+      if (!workoutData[initialDay] || today === 0 || today === 6) {
+        initialDay = 'segunda';
+      }
+      renderWorkout(initialDay);
+
+      initChart();
+    });
+
+    function initChart() {
+      const ctx = document.getElementById('volumeChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Peito', 'Costas', 'Quadríceps', 'Posteriores/Glúteos', 'Ombros', 'Panturrilhas', 'Bíceps', 'Tríceps'],
+          datasets: [{
+            label: 'Séries Semanais',
+            data: [14, 14, 17, 12, 7, 8, 6, 6],
+            backgroundColor: [
+              '#0d9488',
+              '#0f766e',
+              '#115e59',
+              '#134e4a',
+              '#2dd4bf',
+              '#5eead4',
+              '#99f6e4',
+              '#ccfbf1',
+            ],
+            borderColor: '#ffffff',
+            borderWidth: 2,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                boxWidth: 12,
+                padding: 15,
+                font: {
+                  size: 12
+                }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  let label = context.label || '';
+                  if (label) {
+                    label += ': ';
+                  }
+                  if (context.parsed !== null) {
+                    label += context.parsed + ' séries';
+                  }
+                  return label;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  </script>
+
+</body>
+
+</html>
+�
