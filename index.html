@@ -48,6 +48,12 @@
       max-height: 400px;
     }
 
+    [data-accordion-content] {
+      transition: max-height 0.3s ease-out;
+      max-height: 0;
+      overflow: hidden;
+    }
+
     @media (min-width: 768px) {
       .chart-container {
         height: 350px;
@@ -152,7 +158,7 @@
       quinta: {
         title: "Superiores - Foco em Hipertrofia",
         day: "Quinta-feira",
-        icon: "�",
+        icon: "📈",
         intro: "Similar à terça-feira, hoje focamos em volume e conexão mente-músculo para a parte superior do corpo. Use cargas que você controle bem, focando na contração muscular a cada repetição.",
         exercises: [
           { name: "Supino Inclinado com Halteres", sets: "4", reps: "8 - 12", rest: "90 seg" },
@@ -179,6 +185,23 @@
           { name: "Prancha Abdominal", sets: "3", reps: "Até a falha", rest: "60 seg" }
         ],
         notes: "⁴O Levantamento Terra é extremamente demandante. Priorize a técnica perfeita sobre a carga. O descanso longo é essencial."
+      },
+      alternativas: {
+        title: "Guia de Exercícios Alternativos",
+        day: "Alternativas",
+        icon: "🔄",
+        intro: "Use estas alternativas quando um equipamento estiver ocupado, para variar o estímulo ou para adaptar o treino a alguma limitação. O foco é sempre trabalhar o mesmo grupo muscular principal.",
+        alternativesList: [
+          { original: "Desenvolvimento Militar com Barra", subs: ["<strong>Desenvolvimento com Halteres (Sentado):</strong> Permite maior amplitude e trabalho de estabilização.", "<strong>Desenvolvimento na Máquina Articulada:</strong> Mais segurança e foco isolado nos ombros."] },
+          { original: "Tríceps Testa com Barra W", subs: ["<strong>Tríceps Francês com Halter (Bilateral):</strong> Movimento similar, ótimo para alongar a cabeça longa do tríceps.", "<strong>Mergulho no Banco (com peso):</strong> Excelente opção com peso corporal, com possibilidade de sobrecarga."] },
+          { original: "Agachamento Livre com Barra", subs: ["<strong>Leg Press 45°:</strong> Permite usar cargas altas com mais segurança para a coluna.", "<strong>Agachamento Hack:</strong> Guia o movimento, oferecendo grande estabilidade.", "<strong>Agachamento Goblet:</strong> Ótimo para corrigir a postura do tronco."] },
+          { original: "Levantamento Terra Romeno", subs: ["<strong>Stiff com Barra:</strong> Mesmo padrão de movimento, permite maior sobrecarga.", "<strong>Cadeira ou Mesa Flexora:</strong> Isola completamente os posteriores da coxa."] },
+          { original: "Panturrilha em Pé", subs: ["<strong>Panturrilha no Leg Press:</strong> Permite usar muita carga de forma segura e estável.", "<strong>Panturrilha Unilateral com Halter (em degrau):</strong> Aumenta a amplitude e corrige desequilíbrios."] },
+          { original: "Abdominal na Polia Alta", subs: ["<strong>Elevação de Pernas em Paralelas:</strong> Foco excelente na porção inferior do abdômen.", "<strong>Abdominal na Máquina Específica:</strong> Permite sobrecarga progressiva de forma controlada."] },
+          { original: "Remada Serrote com Halter", subs: ["<strong>Remada Curvada com Barra:</strong> Construtor de massa fundamental para as costas.", "<strong>Remada na Máquina Articulada (unilateral):</strong> Simula o movimento do serrote com mais estabilidade."] },
+          { original: "Levantamento Terra Convencional", subs: ["<strong>Levantamento Terra Sumô:</strong> Maior ativação de glúteos e quadríceps, menor demanda na mobilidade lombar.", "<strong>Remada Curvada com Barra:</strong> Embora não seja um substituto direto, é o melhor exercício para construir a força nas costas necessária para o Terra."] },
+          { original: "Afundo Búlgaro com Halteres", subs: ["<strong>Leg Press Unilateral:</strong> Isola a perna trabalhada com grande estabilidade.", "<strong>Afundo (passada) com Halteres:</strong> Alternativa clássica que também desafia a coordenação."] }
+        ]
       }
     };
 
@@ -212,41 +235,16 @@
                 `;
 
         if (dayData.exercises) {
-          contentHTML += `
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full text-left text-sm">
-                                <thead class="border-b border-slate-200">
-                                    <tr>
-                                        <th class="p-2 md:p-4 font-semibold text-slate-600">Exercício</th>
-                                        <th class="p-2 md:p-4 font-semibold text-slate-600 text-center">Séries</th>
-                                        <th class="p-2 md:p-4 font-semibold text-slate-600 text-center">Repetições</th>
-                                        <th class="p-2 md:p-4 font-semibold text-slate-600 text-center">Descanso</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                    `;
-          dayData.exercises.forEach(ex => {
-            contentHTML += `
-                            <tr class="border-b border-slate-100">
-                                <td class="p-2 md:p-4 font-medium">${ex.name}</td>
-                                <td class="p-2 md:p-4 text-center">${ex.sets}</td>
-                                <td class="p-2 md:p-4 text-center">${ex.reps}</td>
-                                <td class="p-2 md:p-4 text-center">${ex.rest}</td>
-                            </tr>
-                        `;
-          });
-          contentHTML += `
-                                </tbody>
-                            </table>
-                        </div>
-                        <p class="mt-6 text-sm text-slate-500 italic">${dayData.notes}</p>
-                    `;
+          contentHTML += renderExercisesTable(dayData);
+        } else if (dayData.alternativesList) {
+          contentHTML += renderAlternativesAccordion(dayData);
         } else {
           contentHTML += dayData.content;
         }
 
         contentHTML += `</div>`;
         contentArea.innerHTML = contentHTML;
+        setupAccordionListeners();
 
         document.querySelectorAll('.nav-link').forEach(link => {
           link.classList.remove('tab-active');
@@ -254,6 +252,83 @@
         });
         document.querySelector(`.nav-link[data-day="${dayKey}"]`).classList.add('tab-active');
         document.querySelector(`.nav-link[data-day="${dayKey}"]`).classList.remove('tab-inactive');
+      }
+
+      function renderExercisesTable(dayData) {
+        let tableHTML = `
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-left text-sm">
+                            <thead class="border-b border-slate-200">
+                                <tr>
+                                    <th class="p-2 md:p-4 font-semibold text-slate-600">Exercício</th>
+                                    <th class="p-2 md:p-4 font-semibold text-slate-600 text-center">Séries</th>
+                                    <th class="p-2 md:p-4 font-semibold text-slate-600 text-center">Repetições</th>
+                                    <th class="p-2 md:p-4 font-semibold text-slate-600 text-center">Descanso</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+        dayData.exercises.forEach(ex => {
+          tableHTML += `
+                        <tr class="border-b border-slate-100">
+                            <td class="p-2 md:p-4 font-medium">${ex.name}</td>
+                            <td class="p-2 md:p-4 text-center">${ex.sets}</td>
+                            <td class="p-2 md:p-4 text-center">${ex.reps}</td>
+                            <td class="p-2 md:p-4 text-center">${ex.rest}</td>
+                        </tr>
+                    `;
+        });
+        tableHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="mt-6 text-sm text-slate-500 italic">${dayData.notes}</p>
+                `;
+        return tableHTML;
+      }
+
+      function renderAlternativesAccordion(dayData) {
+        let accordionHTML = '<div class="space-y-2">';
+        dayData.alternativesList.forEach((item, index) => {
+          accordionHTML += `
+                        <div class="border border-slate-200 rounded-lg">
+                            <h2>
+                                <button type="button" class="flex items-center justify-between w-full p-4 font-semibold text-left text-slate-700 hover:bg-slate-50" data-accordion-target="#content-${index}">
+                                    <span>${item.original}</span>
+                                    <svg class="w-3 h-3 rotate-0 shrink-0 transition-transform duration-200" fill="currentColor" viewBox="0 0 10 6">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5 5 1 1 5"/>
+                                    </svg>
+                                </button>
+                            </h2>
+                            <div id="content-${index}" data-accordion-content>
+                                <div class="p-4 border-t border-slate-200">
+                                    <ul class="list-disc list-inside text-slate-600 space-y-2">
+                                        ${item.subs.map(sub => `<li>${sub}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+        });
+        accordionHTML += '</div>';
+        return accordionHTML;
+      }
+
+      function setupAccordionListeners() {
+        document.querySelectorAll('[data-accordion-target]').forEach(button => {
+          button.addEventListener('click', () => {
+            const content = document.querySelector(button.dataset.accordionTarget);
+            const svg = button.querySelector('svg');
+
+            if (content.style.maxHeight) {
+              content.style.maxHeight = null;
+              svg.classList.remove('rotate-180');
+            } else {
+              content.style.maxHeight = content.scrollHeight + 'px';
+              svg.classList.add('rotate-180');
+            }
+          });
+        });
       }
 
       Object.keys(workoutData).forEach(key => {
@@ -300,14 +375,8 @@
             label: 'Séries Semanais',
             data: [14, 14, 17, 12, 7, 8, 6, 6],
             backgroundColor: [
-              '#0d9488',
-              '#0f766e',
-              '#115e59',
-              '#134e4a',
-              '#2dd4bf',
-              '#5eead4',
-              '#99f6e4',
-              '#ccfbf1',
+              '#0d9488', '#0f766e', '#115e59', '#134e4a',
+              '#2dd4bf', '#5eead4', '#99f6e4', '#ccfbf1',
             ],
             borderColor: '#ffffff',
             borderWidth: 2,
